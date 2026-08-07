@@ -1,0 +1,48 @@
+Before attempting to use the program, ensure that you have a docker container environment available for use, install python3, and install WSL.
+
+1. Download all files from GitHub, and ensure the following files are located in the proper folders. (credentials will be intentionally omitted [see main.py]
+
+|- Storage Service (MAIN FOLDER)
+ |
+ |- app (APPLICATION FOLDER)
+ | |- __init__.py
+ | |- database.py
+ | |- main.py
+ | |- models.py
+ |
+ |- data (DATA FOLDER [starts empty])
+ |
+ |- docker-compose.yaml
+ |- Dockerfile
+ |- requirements.txt
+
+*Note: If these specific files are not in the proper location there is a chance that the application will not function properly.
+
+2. Build Docker Container and start (use command prompt in the main storage service folder)
+
+	* docker-compose up --build -d
+
+	* Check running containers
+	  - docker ps
+
+
+	*docker-compose logs -f
+
+	* Navigate to URL to view GUI
+	  -http://localhost:5001/docs
+
+	* Verify Functionality (from a linux terminal)
+	  -curl -X POST "http://localhost:5001/api/v1/storage" \
+     		-H "Content-Type: application/json" \
+     		-H "X-API-Key: key-simplirecon-secret-123" \
+    		-d '{"data": {"test": "value"}, "metadata": {"env": "dev"}}'
+
+	* Stop container
+	  -docker-compose down
+
+	* Stop and delete container
+	  -docker-compose down -v
+
+	* Restart Container
+	  -docker-compose restart
+

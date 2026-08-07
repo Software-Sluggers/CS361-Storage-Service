@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  storage_service:
+    build: .
+    container_name: storage_microservice
+    ports:
+      - "5001:5001"
+    volumes:
+      - storage_data:/app/data
+    restart: always
+
+volumes:
+  storage_data:
