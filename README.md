@@ -1,6 +1,6 @@
 # Storage Microservice
 
-This is a python-based microservice used for storing events and data from main program and microservice implementations in a shared suite of group products.
+[PLEASE READ THE ATTACHED INSTRUCTIONS TXT FILE FOR DOWNLOAD AND STARTUP INSTRUCTIONS] This is a python-based microservice used for storing events and data from main program and microservice implementations in a shared suite of group products.
 ---
 
 ## Features
