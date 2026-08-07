@@ -23,11 +23,11 @@ app = FastAPI(
     description="A lightweight service for persisting application data with tenant-aware access control.",
 )
 
-# Predefined client credentials
+# Predefined client credentials, Hard coded credentials omitted from Github code
 VALID_CLIENT_KEYS = {
-    "key-simplirecon-secret-123": "SimpliRecon",
-    "key-webapp-secret-456": "WebAppClient",
-    "key-mobile-secret-789": "MobileAppClient",
+    "################": "##############",
+    "#################": "##############",
+    "#################": "###############",
 }
 
 
