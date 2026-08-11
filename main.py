@@ -3,72 +3,103 @@
 # Daniel Magann
 # 8/6/2026
 # Sources:
-# FastAPI documentation: https://fastapi.tiangolo.com/
-# SQLite documentation: https://www.sqlite.org/docs.html
-# Python UUID module: https://docs.python.org/3/library/uuid.html
-# Python JSON module: https://docs.python.org/3/library/json.html
-# Description:  A FastAPI application for storing and retrieving records for use alongside a suite
-# of microservices and main programs.
+# FastAPI Docs: https://fastapi.tiangolo.com/
+# SQLite Docs: https://www.sqlite.org/docs.html
+# Pydantic Docs: https://docs.pydantic.dev/
 
 import json
+import os
+import sqlite3
 import uuid
+from typing import Any, Dict, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
+from pydantic import BaseModel, Field
 
-from app.database import get_db, init_db
-from app.models import RecordResponse, StoreDataRequest, StoreDataResponse
+app = FastAPI(title="Storage Microservice")
 
-app = FastAPI(
-    title="Unified Storage Microservice",
-    description="A lightweight service for persisting application data with tenant-aware access control.",
-)
+DB_PATH = os.getenv("DATABASE_PATH", "/app/data/storage.db")
 
-# Predefined client credentials, Hard coded credentials omitted from Github code
+# API Keys, client names
 VALID_CLIENT_KEYS = {
-    "################": "##############",
-    "#################": "##############",
-    "#################": "###############",
+    "key-simplirecon-secret-123": "SimpliRecon",
+    "key-webapp-secret-456": "WebAppClient",
+    "key-mobile-secret-789": "MobileAppClient",
 }
 
 
+# Helper functions
+
+def get_db() -> sqlite3.Connection:
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db() -> None:
+    with get_db() as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS storage_records (
+                id TEXT PRIMARY KEY,
+                client_id TEXT NOT NULL,
+                data TEXT NOT NULL,
+                metadata TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_client_record
+            ON storage_records(client_id, id)
+            """
+        )
+        conn.commit()
+
+
 @app.on_event("startup")
-def startup_event() -> None:
-    """
-    Initialize SQL schema
-    """
+def startup_event():
     init_db()
 
 
+# Authentication
+
 def authenticate_client(x_api_key: str = Header(..., alias="X-API-Key")) -> str:
-    """
-    Validate the incoming API key and return the client identifier.
-    """
     client_id = VALID_CLIENT_KEYS.get(x_api_key)
     if not client_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized: Invalid API key",
+            detail="Invalid API Key",
         )
     return client_id
 
 
-@app.post("/api/v1/storage", response_model=StoreDataResponse, status_code=status.HTTP_201_CREATED)
+# Pydantic
+
+class StoreDataRequest(BaseModel):
+    data: Dict[str, Any] = Field(..., description="Application data payload")
+    metadata: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Optional metadata",
+    )
+
+
+# API Routes
+
+@app.post("/api/v1/storage", status_code=201)
 def create_record(
     payload: StoreDataRequest,
     client_id: str = Depends(authenticate_client),
-) -> StoreDataResponse:
-    """
-    Create a new record and return generated identifier.
-    """
+):
     record_id = str(uuid.uuid4())
     data_str = json.dumps(payload.data)
-    meta_str = json.dumps(payload.metadata) if payload.metadata else json.dumps({})
+    meta_str = json.dumps(payload.metadata or {})
 
     with get_db() as conn:
         conn.execute(
-            """
-            INSERT INTO storage_records (id, client_id, data, metadata) VALUES (?, ?, ?, ?)
-            """,
+            "INSERT INTO storage_records (id, client_id, data, metadata) VALUES (?, ?, ?, ?)",
             (record_id, client_id, data_str, meta_str),
         )
         conn.commit()
@@ -76,14 +107,11 @@ def create_record(
     return {"id": record_id}
 
 
-@app.get("/api/v1/storage/{record_id}", response_model=RecordResponse)
+@app.get("/api/v1/storage/{record_id}")
 def get_record(
     record_id: str,
     client_id: str = Depends(authenticate_client),
-) -> RecordResponse:
-    """
-    Get a record by ID
-    """
+):
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -94,8 +122,8 @@ def get_record(
 
     if not row:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Record not found or access denied.",
+            status_code=404,
+            detail="Record not found",
         )
 
     return {
@@ -106,14 +134,11 @@ def get_record(
     }
 
 
-@app.delete("/api/v1/storage/{record_id}", status_code=status.HTTP_200_OK)
+@app.delete("/api/v1/storage/{record_id}")
 def delete_record(
     record_id: str,
     client_id: str = Depends(authenticate_client),
-) -> dict[str, str]:
-    """
-    Delete Record by ID
-    """
+):
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -124,8 +149,8 @@ def delete_record(
 
         if cursor.rowcount == 0:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Record not found or access denied.",
+                status_code=404,
+                detail="Record not found",
             )
 
-    return {"message": f"Record {record_id} successfully deleted."}
+    return {"message": f"Record {record_id} deleted."}
