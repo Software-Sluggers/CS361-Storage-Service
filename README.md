@@ -1,60 +1,39 @@
-# Storage Microservice
+ CS361 Storage Microservice
 
-[PLEASE READ THE ATTACHED INSTRUCTIONS TXT FILE FOR DOWNLOAD AND STARTUP INSTRUCTIONS] This is a python-based microservice used for storing events and data from main program and microservice implementations in a shared suite of group products.
----
+A basic Python FastAPI service used to persist JSON records and metadata across group microservices.
 
-## Features
+## Setup & Running with Docker
 
-- **Multi-tenancy isolation**: Client records are stored seperately and accessed through client specific API keys.
-- **Crash reliability**: Generated data is stored and survives container restarts.
-- **Schema validation**: Incoming data packets get validated against Pydantic models.
-
----
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/storage` | Stores a data/metadata payload and returns a unique UID. |
-| `GET` | `/api/v1/storage/{id}` | Retrieves a record by ID |
-| `DELETE` | `/api/v1/storage/{id}` | Removes a client record. |
-
----
-
-## Authentication
-
-All requests require the `X-API-Key` header. The following keys are used for testing and should be changed or deactivated for live system tests:
-
-- `key-simplirecon-secret-123` (Client ID: `SimpliRecon`)
-- `key-webapp-secret-456` (Client ID: `WebAppClient`)
-- `key-mobile-secret-789` (Client ID: `MobileAppClient`)
-
----
-
-## Running with Docker
-
-1. Build and start the container:
+1. Build and run the container:
    ```bash
    docker-compose up --build -d
-   ```
+Check running status:
 
-2. Verify that the container is running:
-   ```bash
-   docker ps
-   ```
+(Bash)
+docker ps
+View FastAPI interactive docs:
+Open http://localhost:5001/docs in your browser.
 
-3. Open the interactive GUI in any browser:
-   ```text
-   http://localhost:5001/docs
-   ```
+API Authentication
+All requests require an X-API-Key header:
 
----
+key-simplirecon-secret-123 (SimpliRecon)
 
-## Example Requests
+key-webapp-secret-456 (WebAppClient)
 
-### Create a record
+key-mobile-secret-789 (MobileAppClient)
 
-```bash
+API Endpoints
+POST /api/v1/storage - Store a new record (returns UID)
+
+GET /api/v1/storage/{id} - Fetch record by ID
+
+DELETE /api/v1/storage/{id} - Delete record by ID
+
+Example Requests
+Create Record:
+
+Bash
 curl -X POST "http://localhost:5001/api/v1/storage" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: key-simplirecon-secret-123" \
@@ -62,19 +41,10 @@ curl -X POST "http://localhost:5001/api/v1/storage" \
         "data": {"packets": 142, "mode": "Monitor"},
         "metadata": {"source": "SimpliRecon"}
       }'
-```
+Get Record:
 
-Example response:
-
-```json
-{
-  "id": "c301e05a-5807-40b5-90f1-435520a03003"
-}
-```
-
-### Fetch a record
-
-```bash
-curl -X GET "http://localhost:5001/api/v1/storage/c301e05a-5807-40b5-90f1-435520a03003" \
+Bash
+curl -X GET "http://localhost:5001/api/v1/storage/<YOUR_RECORD_ID>" \
   -H "X-API-Key: key-simplirecon-secret-123"
-```
+
+---
